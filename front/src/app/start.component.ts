@@ -1,7 +1,7 @@
 import { Component, Input, Inject } from "@angular/core";
 import {FormsModule} from "@angular/forms";
 import {HttpClientModule} from "@angular/common/http";
-import {BackendService, AuthState} from "./backend.service";
+import {BackendService, AuthState, RegisterState} from "./backend.service";
 import { RouterOutlet, RouterLink, Router, ActivatedRoute, Params} from "@angular/router";
 import { Observable } from "rxjs";
 import {CookieService} from "./cookie.service";
@@ -29,6 +29,14 @@ import {CookieService} from "./cookie.service";
 	  text-align: center;
 	}
 	
+	header td{
+		font-size: 15px;
+	}
+	
+	header p{
+		font-size: 15px;
+	}
+	
 	h1 {
 	  margin: 0;
 	}
@@ -48,6 +56,9 @@ import {CookieService} from "./cookie.service";
 	#inputForm {
 	  max-width: 300px;
 	  margin: 0 auto;
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
 	}
 	
 	#inputForm button {
@@ -60,15 +71,17 @@ import {CookieService} from "./cookie.service";
 	  cursor: pointer;
 	  border-radius: 10px;
 	}
+	
+	#inputForm button:disabled{
+		background-color: #AFEDAF;
+	}
 
 	#inputForm p {
 	  margin-bottom: 10px;
 	}
 	
-	#inputForm input[type='text'], #inputForm input[type='password'] {
-		width: calc(100% - 20px);
-		margin-bottom: 10px;
-		padding: 10px;
+	.errorMessage {
+		color: red;
 	}
 	
 	@media (max-width: 657px) {
@@ -82,7 +95,7 @@ import {CookieService} from "./cookie.service";
 		padding: 10px;
 	  }
 	  
-	  #inputForm input[type='text'], #inputForm input[type='password'], #inputForm button, #inputForm label {
+	  #inputForm input[type='text'], #inputForm input[type='password'], #inputForm button, #inputForm label, #inputForm p {
 		width: calc(100% - 20px);
 		margin-bottom: 5px;
 		padding: 5px;
@@ -103,7 +116,7 @@ import {CookieService} from "./cookie.service";
 		margin: auto;
 	   }
 	  
-	   #inputForm input[type='text'], #inputForm input[type='password'], #inputForm button, #inputForm label {
+	   #inputForm input[type='text'], #inputForm input[type='password'], #inputForm button, #inputForm label, #inputForm p {
 		width: calc(100% - 20px);
 		margin-bottom: 10px;
 		padding: 10px;
@@ -122,7 +135,7 @@ import {CookieService} from "./cookie.service";
 		 padding:20px;
 	   }
 
-	   #inputForm input[type='text'], #inputForm input[type='password'], #inputForm button, #inputForm label {
+	   #inputForm input[type='text'], #inputForm input[type='password'], #inputForm button, #inputForm label, #inputForm p {
 		 width: calc(100% - 20px);
 		 margin-bottom:10px;
 		 padding:10px;
@@ -151,6 +164,7 @@ import {CookieService} from "./cookie.service";
 								</tr>
 							</tbody>
 						</table>
+						<p>Для использования пробросьте порт 32169 сервера на 8080 локальный</p>
 					</header>
 					<main>
 						<div id="inputForm">
@@ -158,11 +172,11 @@ import {CookieService} from "./cookie.service";
 							<input placeholder="Пароль" type="password" [(ngModel)]="password">
 							<input placeholder="Повторите пароль" type="password" [(ngModel)]="passRepeat" [hidden]="authlogin" />
 							@if(!authlogin){
-								<button (click)="register(login, password)">Регистрация</button>
+								<button (click)="register(login, password)" [disabled]="login.length < 6 || password.length < 6">Регистрация</button>
 							} @else {
-								<button (click)="auth(login, password)">Авторизация</button>
+								<button (click)="auth(login, password)" [disabled]="login.length < 6 || password.length < 6">Авторизация</button>
 							}
-							<p>{{errorMessage}}</p>
+							<p class="errorMessage">{{errorMessage}}</p>
 							<div>
 								<label>Уже зарегистрированы?</label>
 								<input type="checkbox" [(ngModel)]="authlogin" />
@@ -197,10 +211,16 @@ export class StartComponent {
 	async auth(login: string, password: string){
 		let x = await this.backend.auth(login, password);
 		switch(x){
-			case AuthState.Bad_request:
-				this.errorMessage = "Данные введены неверно!";
+			case AuthState.Bad_login:
+				this.errorMessage = "Невалидный логин";
 				break;
-			case AuthState.Authorized:
+			case AuthState.Bad_password:
+				this.errorMessage = "Невалидный пароль";
+				break;
+			case AuthState.Bad_login_or_password:
+				this.errorMessage = "Неверный логин или пароль!";
+				break;
+			case AuthState.Ok:
 				if(this.saveSession)
 					this.cookies.setCookie('token', this.backend.token, 'max-age=600');
 				else
@@ -215,10 +235,16 @@ export class StartComponent {
 	async register(login: string, password: string){
 		let x = await this.backend.register(login, password);
 		switch(x){
-			case AuthState.Bad_request:
-				this.errorMessage = "Данные введены неверно!";
+			case RegisterState.Bad_login:
+				this.errorMessage = "Невалидный логин";
 				break;
-			case AuthState.Authorized:
+			case RegisterState.Bad_password:
+				this.errorMessage = "Невалидный пароль";
+				break;
+			case RegisterState.Theres_account_with_this_login:
+				this.errorMessage = "Логин уже занят";
+				break;
+			case RegisterState.Ok:
 				if(this.saveSession)
 					this.cookies.setCookie('token', this.backend.token, 'max-age=600');
 				else

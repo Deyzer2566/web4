@@ -131,7 +131,7 @@ import {CookieService} from "./cookie.service";
 								<label>y </label>
 								<input type="number" [class.invalid]="messageForY!=''" [(ngModel)]="y" [min]="-3" [max]="5" (ngModelChange)="redraw()" />
 							</div>
-							<p class="errorMessage">{{messageForY}}</p>
+							<div class="errorMessage"><p>{{messageForY}}</p></div>
 							<div>
 								<label>r </label>
 								<select [(ngModel)]="r" (ngModelChange)="redraw()" [class.invalid]="messageForR!=''">
@@ -142,13 +142,12 @@ import {CookieService} from "./cookie.service";
 									}
 								</select>
 							</div>
-							<p class="errorMessage">{{messageForR}}</p>
+							<div class="errorMessage"><p>{{messageForR}}</p></div>
 						</div>
 						<div>
 							<button (click)="sendPoint(x,y,r)" [disabled]='messageForY != "" || messageForR != ""'>Отправить точку</button>
 							<button (click)="leave()">Ливнуть с акка</button>
 							<button (click)="clearPoints()" [disabled]='points.length == 0'>Удалить точки</button>
-							<button [disabled]="true">Заглушка</button>
 						</div>
 						<p class="errorMessage">{{errorMessage}}</p>
 					</div>
@@ -184,8 +183,8 @@ export class MainComponent implements AfterViewInit{
 		this.canvas.nativeElement.addEventListener("mousemove",ev=>{
 			this.redraw();
 			let rect = this.canvas.nativeElement.getBoundingClientRect();
-			let x = (ev.clientX-rect.left-150)/this.R_ed;
-			let y = (150-ev.clientY+rect.top)/this.R_ed;
+			let x = (ev.clientX-rect.left-150-this.canvasPadding)/this.R_ed;
+			let y = (150-ev.clientY+rect.top+this.canvasPadding)/this.R_ed;
 			if(x>=-5 && x <= 3 && y >= -3 && y <= 5)
 				this.drawPoint(Number(x.toFixed(0)),y,this.r, "pink");
 		});
@@ -193,6 +192,7 @@ export class MainComponent implements AfterViewInit{
 	
 	possibleX = [-5,-4,-3,-2,-1,0,1,2,3];
 	possibleR = [-5,-4,-3,-2,-1,0,1,2,3];
+	canvasPadding=10;
     _x: number = 0;
 	_y: number = 0;
 	_r: number = 1;
@@ -203,11 +203,20 @@ export class MainComponent implements AfterViewInit{
 	R_ed = 30;
 	async sendPoint(x:number, y:number, r:number){
 		switch (await this.backend.sendPoint(x,y,r)){
-			case SendPointState.Good:
+			case SendPointState.Ok:
 				this.errorMessage = "";
 				break;
 			case SendPointState.Unauthorized:
 				this.leaveCauseOfSession();
+				break;
+			case SendPointState.InvalidX:
+				this.errorMessage = "Невалидный X";
+				break;
+			case SendPointState.InvalidY:
+				this.errorMessage = "Невалидный Y";
+				break;
+			case SendPointState.InvalidR:
+				this.errorMessage = "Невалидный R";
 				break;
 			default:
 				this.errorMessage = "Координаты введены неверно";
@@ -221,7 +230,7 @@ export class MainComponent implements AfterViewInit{
 	async getPoints(){ 
 		let resp = await this.backend.getPoints();
 		switch(resp[0]){
-			case GetPointsState.Good:
+			case GetPointsState.Ok:
 				this.points = resp[1];
 				break;
 			default:
@@ -433,8 +442,8 @@ export class MainComponent implements AfterViewInit{
 		if (R < 1 || R > 3)
 			return;
 		let rect = this.canvas.nativeElement.getBoundingClientRect();
-		let x = (ev.clientX-rect.left-150)/R_ed;
-		let y = (150-ev.clientY+rect.top)/R_ed;
+		let x = (ev.clientX-rect.left-150-this.canvasPadding)/R_ed;
+		let y = (150-ev.clientY+rect.top+this.canvasPadding)/R_ed;
 		this.sendPoint(Number(x.toFixed(0)),y,R);
 	}
 	leave(){
@@ -449,7 +458,7 @@ export class MainComponent implements AfterViewInit{
 	clearPoints(){
 		this.backend.clearPoints().then(e=>{
 			switch(e){
-				case ClearPointsState.Good:
+				case ClearPointsState.Ok:
 					this.getPoints().then(e=>{
 						this.redraw();
 					});

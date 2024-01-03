@@ -3,14 +3,25 @@ package Point;
 import Entities.UserPoint;
 
 public class PointValidator {
-    public static boolean validatePoint(String x, String y, String r){
+    public static void validatePoint(String x, String y, String r) throws BadXException, BadYException, BadRException{
+        double x1,y1,r1;
+        try {
+            x1 = Double.parseDouble(x);
+            assert x1 >= -5 && x1 <= 3;
+        } catch(NullPointerException | NumberFormatException | AssertionError e) {
+            throw new BadXException();
+        }
         try{
-            double x1 = Double.parseDouble(x);
-            double y1 = Double.parseDouble(y);
-            double r1 = Double.parseDouble(r);
-            return x1 >= -5 && x1 <= 3 && y1 >= -3 && y1 <= 5 && r1 >= 0 && r1 <= 3;
-        } catch(NullPointerException | NumberFormatException e){
-            return false;
+            y1 = Double.parseDouble(y);
+            assert y1 >= -3 && y1 <= 5;
+        } catch(NullPointerException | NumberFormatException | AssertionError e) {
+            throw new BadYException();
+        }
+        try{
+            r1 = Double.parseDouble(r);
+            assert r1 >= 0 && r1 <= 3;
+        } catch(NullPointerException | NumberFormatException | AssertionError e) {
+            throw new BadRException();
         }
     }
     public static boolean checkPoint(UserPoint userPoint){

@@ -3,14 +3,23 @@ import {HttpClient} from "@angular/common/http";
 
 export enum AuthState {
 	None,
-	Bad_request,
-	Unauthorized,
-	Authorized
+	Bad_login,
+	Bad_password,
+	Bad_login_or_password,
+	Ok
+}
+
+export enum RegisterState{
+	None,
+	Bad_login,
+	Bad_password,
+	Theres_account_with_this_login,
+	Ok
 }
 
 export enum SendPointState{
 	None,
-	Good,
+	Ok,
 	InvalidX,
 	InvalidY,
 	InvalidR,
@@ -19,13 +28,13 @@ export enum SendPointState{
 
 export enum GetPointsState{
 	None,
-	Good,
+	Ok,
 	Unauthorized
 }
 
 export enum ClearPointsState{
 	None,
-	Good,
+	Ok,
 	Unauthorized
 }
     
@@ -45,10 +54,19 @@ export class BackendService{
 		  this.uri+'/api/user/login', body,
 		  { observe: 'response', responseType: "text" }
 			).toPromise()
-			.then(response=>{authorized = AuthState.Authorized;token=response.body.toString();})
-			.catch(error=>{switch(error.status){
+			.then(response=>{authorized = AuthState.Ok;token=response.body.toString();})
+			.catch(error=>{
+				let resp = JSON.parse(error.error);
+				switch(error.status){
 				case 400:
-					authorized = AuthState.Bad_request;
+					if(resp['code']=='BAD_LOGIN')
+						authorized = AuthState.Bad_login as AuthState;
+					else if(resp['code']=='BAD_PASSWORD')
+						authorized = AuthState.Bad_password as AuthState;
+					else if(resp['code']=='BAD_LOGIN_OR_PASSWORD')
+						authorized = AuthState.Bad_login_or_password;
+					else
+						authorized = AuthState.None;
 					break;
 				default:
 					authorized = AuthState.None;
@@ -61,27 +79,33 @@ export class BackendService{
 	
 	async register(login: string, password: string){
 		const body = {login: login, password: password};
-		let authorized: AuthState = AuthState.None as AuthState;
+		let registered: RegisterState = RegisterState.None as RegisterState;
 		let token = "";
 		let response = await (this.http.post(
 		  this.uri+'/api/user/register', body,
 		  { observe: 'response', responseType: "text"  }
 			).toPromise())
-			.then(response=>{authorized = AuthState.Authorized;token=response.body.toString();})
-			.catch(response=>{switch(response.status){
-				case 400:
-					authorized = AuthState.Bad_request as AuthState;
-					break;
-				case 401:
-					authorized = AuthState.Unauthorized as AuthState;
-					break;
-				default:
-					authorized = AuthState.None as AuthState;
-					break;
-			}
+			.then(response=>{registered = RegisterState.Ok;token=response.body.toString();})
+			.catch(response=>{
+				let resp = JSON.parse(response.error);
+				switch(response.status){
+					case 400:
+						if(resp['code']=='BAD_LOGIN')
+							registered = RegisterState.Bad_login as RegisterState;
+						else if(resp['code']=='BAD_PASSWORD')
+							registered = RegisterState.Bad_password as RegisterState;
+						else if(resp['code']=='THERES_ACCOUNT_WITH_THIS_LOGIN')
+							registered = RegisterState.Theres_account_with_this_login as RegisterState;
+						else
+							registered = RegisterState.None as RegisterState;
+						break;
+					default:
+						registered = RegisterState.None as RegisterState;
+						break;
+				}
 			});
 		this.token = token;
-		return authorized;
+		return registered;
 	}
 	
 	reset(){
@@ -95,16 +119,25 @@ export class BackendService{
 		  this.uri+'/api/point/put', body,
 		  { observe: 'response' }
 			).toPromise())
-			.then(response=>{status = SendPointState.Good;})
-			.catch(response=>{switch(response.status){
+			.then(response=>{status = SendPointState.Ok as SendPointState;})
+			.catch(response=>{
+				let resp = JSON.parse(response.error);
+				switch(response.status){
 				case 400:
-					status = SendPointState.InvalidX;
+					if(resp['code'] == 'INVALID_X')
+						status = SendPointState.InvalidX as SendPointState;
+					else if(resp['code']=='INVALID_Y')
+						status = SendPointState.InvalidY as SendPointState;
+					else if(resp['code']=='INVALID_R')
+						status = SendPointState.InvalidR as SendPointState;
+					else
+						status = SendPointState.None as SendPointState;
 					break;
 				case 401:
-					status = SendPointState.Unauthorized;
+					status = SendPointState.Unauthorized as SendPointState;
 					break;
 				default:
-					status = SendPointState.None;
+					status = SendPointState.None as SendPointState;
 					break;
 			}});
 		return status;
@@ -117,13 +150,13 @@ export class BackendService{
 		  this.uri+'/api/point/get', body,
 		  { observe: 'response' }
 			).toPromise())
-			.then(response=>{status = GetPointsState.Good;return response.body;},
+			.then(response=>{status = GetPointsState.Ok as GetPointsState;return response.body;},
 			response=>{switch(response.status){
 				case 401:
-					status = GetPointsState.Unauthorized;
+					status = GetPointsState.Unauthorized as GetPointsState;
 					break;
 				default:
-					status = GetPointsState.None;
+					status = GetPointsState.None as GetPointsState;
 					break;
 			}});
 		return [status, response];
@@ -135,13 +168,13 @@ export class BackendService{
 		  this.uri+'/api/point/clear', body,
 		  { observe: 'response' }
 			).toPromise())
-			.then(response=>{status = ClearPointsState.Good;})
+			.then(response=>{status = ClearPointsState.Ok as ClearPointsState;})
 			.catch(response=>{switch(response.status){
 				case 401:
-					status = ClearPointsState.Unauthorized;
+					status = ClearPointsState.Unauthorized as ClearPointsState;
 					break;
 				default:
-					status = ClearPointsState.None;
+					status = ClearPointsState.None as ClearPointsState;
 					break;
 			}});
 		return status;

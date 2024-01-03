@@ -5,8 +5,7 @@ import Database.UnauthorizedException;
 import Database.UserBase;
 import Entities.Account;
 import Entities.UserPoint;
-import Point.PointBuilder;
-import Point.PointValidator;
+import Point.*;
 import Token.TokenManager;
 import jakarta.ejb.EJB;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,40 +32,44 @@ public class PointManager {
 
     @POST
     @Path("/put")
+    @Produces(MediaType.APPLICATION_JSON)
     public Response putPoint (Map<String, String> params, @Context HttpServletRequest request, @Context HttpServletResponse response) throws Exception {
-        Response.Status status = Response.Status.OK;
+        String x = params.get("x");
+        String y = params.get("y");
+        String r = params.get("r");
+        String token = params.get("token");
+        Account account = tokenManager.getAccount(token);
+        if(account == null)
+            return Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .build();
         try {
-            String x = params.get("x");
-            String y = params.get("y");
-            String r = params.get("r");
-            String token = params.get("token");
-            Account account = tokenManager.getAccount(token);
-            if(account == null)
-                return Response.status(Response.Status.UNAUTHORIZED).build();
-            try {
-                if (!PointValidator.validatePoint(x, y, r))
-                    return Response
-                            .status(Response.Status.BAD_REQUEST)
-                            .build();
-                else
-                    pointBase.putPoint(account, PointBuilder.createPoint(x, y, r));
-            } catch(UnauthorizedException e){
-                return Response
-                        .status(Response.Status.UNAUTHORIZED)
-                        .build();
-            } catch(NullPointerException e) {
-                return Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .build();
-            }
-        } catch (NullPointerException e) {
+            PointValidator.validatePoint(x, y, r);
+        } catch(BadXException e) {
             return Response
                     .status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("Невалидное значение X",ResponseErrorEnum.INVALID_X))
+                    .build();
+        } catch(BadYException e){
+            return Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("Невалидное значение Y",ResponseErrorEnum.INVALID_Y))
+                    .build();
+        } catch(BadRException e){
+            return Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("Невалидное значение R",ResponseErrorEnum.INVALID_R))
                     .build();
         }
-
+        try{
+            pointBase.putPoint(account, PointBuilder.createPoint(x, y, r));
+        } catch(UnauthorizedException e){
+            return Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .build();
+        }
         return Response
-                .status(status)
+                .status(Response.Status.OK)
                 .build( );
     }
     @POST
@@ -76,12 +79,16 @@ public class PointManager {
         String token = params.get("token");
         Account account = tokenManager.getAccount(token);
         if(account == null)
-            return Response.status(Response.Status.UNAUTHORIZED).build();
+            return Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .build();
         List<UserPoint> pointList;
         try{
             pointList = pointBase.getPointsTable(account);
         } catch (UnauthorizedException e) {
-            return Response.status(Response.Status.UNAUTHORIZED).build();
+            return Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .build();
         }
         pointList = pointList.stream().map(x-> PointBuilder.createPoint(x.getId(),
                                                             x.getX(),
@@ -95,15 +102,20 @@ public class PointManager {
 
     @POST
     @Path("/clear")
+    @Produces(MediaType.APPLICATION_JSON)
     public Response clearPoints (Map<String, String> params, @Context HttpServletRequest request, @Context HttpServletResponse response) throws IOException {
         String token = params.get("token");
         Account account = tokenManager.getAccount(token);
         if(account == null)
-            return Response.status(Response.Status.UNAUTHORIZED).build();
+            return Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .build();
         try{
             pointBase.clearPoints(account);
         } catch (UnauthorizedException e) {
-            return Response.status(Response.Status.UNAUTHORIZED).build();
+            return Response
+                    .status(Response.Status.UNAUTHORIZED)
+                    .build();
         }
         return Response
                 .status(Response.Status.OK)
