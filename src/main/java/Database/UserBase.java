@@ -3,14 +3,12 @@ package Database;
 import Entities.Account;
 import User.UserBuilder;
 
-import javax.ejb.Singleton;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
-import javax.persistence.Persistence;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
+import jakarta.ejb.Singleton;
+import jakarta.persistence.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +20,6 @@ public class UserBase implements Serializable {
 
     public UserBase() {
         this.emfactory = Persistence.createEntityManagerFactory("Web4");
-
         this.entityManager = emfactory.createEntityManager();
     }
 

@@ -1,71 +1,112 @@
 import { Component, AfterViewInit, ViewChild, ElementRef, Input, Inject } from "@angular/core";
+import {NgIf} from "@angular/common";
 import {FormsModule} from "@angular/forms";
 import {HttpClientModule} from "@angular/common/http";
 import { RouterOutlet, RouterLink, ActivatedRoute, Router, Params} from "@angular/router";
 import {BackendService, SendPointState, GetPointsState, ClearPointsState} from "./backend.service";
 import { Observable } from "rxjs";
+import {CookieService} from "./cookie.service";
      
 @Component({
     selector: "main",
     standalone: true,
-    imports: [FormsModule, HttpClientModule],
-	providers: [BackendService],
+    imports: [FormsModule, HttpClientModule, NgIf],
+	providers: [BackendService, CookieService],
 	styles:`
-	button{
-		color: #35B2FF;
-		background-color: #E7FFEE;
-		border-radius: 10px;
+	#app {
+	  width: min-content;
+	  margin: 0 auto;
 	}
-	button:hover{
-		background-color: #C0D4C5; 
+
+	#container {
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
+	  padding: 20px;
+	  border: 1px solid #ccc;
+	  border-radius: 10px;
+	  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 	}
+
+	canvas {
+	  border: 1px solid #ccc;
+	  border-radius: 10px;
+	  padding: 10px;
+	}
+
+	table {
+	  margin-top: 20px;
+	}
+
+	td {
+	  padding: 10px;
+	}
+
+	button {
+	  padding: 10px 20px;
+	  background-color: #007bff;
+	  color: #fff;
+	  border: none;
+	  border-radius: 10px;
+	  cursor: pointer;
+	  width: 50%;
+	}
+
+	button:hover {
+	  background-color: #0056b3;
+	}
+	
 	button:disabled{
-		background-color: #5C665F;
+		background-color: #B4D3FF;
 	}
-	#points{
-		margin-left: auto;
-		margin-right: auto;
-		border: 2mm groove rgb(255, 243, 190);
+
+	#points {
+	  margin-top: 20px;
 	}
-	#points td{
-		padding: 10px;
+
+	th, td {
+	  padding: 10px;
 	}
-	#points tbody tr:nth-child(odd){
-		background-color: #C6ED67;
+
+	thead {
+	  background-color: #f2f2f2;
 	}
-	#points tbody tr:nth-child(even){
-		background-color: #65ED94;
+	
+	input:invalid{
+		background-color: #E3002E30;
 	}
-	#points thead th{
-		background-color: #19ED99;
+	
+	#pointCoords{
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 	}
-	#pointCoords {
-		margin-left: auto;
-		margin-right: auto;
-		text-align: center;
+	
+	.errorMessage{
+		color: red;
 	}
-	#pointCoords tbody td{
-		width: min-content;
-	}
+	
 	#app{
-		border: 4mm ridge rgb(120, 240, 80);
-		text-align: center;
-		margin-left: auto;
-		margin-right: auto;
-		width: min-content;
+		display: flex;
 	}
-	@media(max-width: 656px){
-	}
-	@media(min-width: 657px) and (max-width: 1188px) {
-		#container {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+	
+	@media(max-width: 657px){
+		#app{
+			align-items: center;
+			flex-direction: column;
+		}
+		#app > *{
+			margin-bottom: 10px;
 		}
 	}
-	@media(min-width: 1189px){
-		#container {
-		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
+	
+	@media(min-width: 657px){
+		#app{
+			flex-direction: row;
+			align-items: flex-start;
+		}
+		#app > *{
+			margin-right: 10px;
 		}
 	}
 	`,
@@ -75,48 +116,41 @@ import { Observable } from "rxjs";
 						<canvas width="300" height="300" #myCanv (click)="onCanvasClick($event)">
 							Скачай нормальный браузер!
 						</canvas>
-						<div>
-							<table id="pointCoords">
-								<tbody>
-									<tr>
-										<td>x</td>
-										<td>
-											<select [(ngModel)]="x" (ngModelChange)="redraw()">
-												@for(comp of possibleX; track $index){
-													<option [value]="comp">
-														{{comp}}
-													</option>
-												}
-											</select>
-										</td>
-									</tr>
-									<tr>
-										<td>y</td>
-										<td><input type="number" [(ngModel)]="y" [min]="-3" [max]="5" (ngModelChange)="redraw()" /></td>
-										<td>{{messageForY}}</td>
-									</tr>
-									<tr>
-										<td>r</td>
-										<td>
-											<select [(ngModel)]="r" (ngModelChange)="redraw()">
-												@for(comp of possibleR; track $index){
-													<option [value]="comp">
-														{{comp}}
-													</option>
-												}
-											</select>
-										</td>
-										<td>{{messageForR}}</td>
-									</tr>
-								</tbody>
-							</table>
+						<div id="pointCoords">
+							<div>
+								<label>x </label>
+								<select [(ngModel)]="x" (ngModelChange)="redraw()">
+									@for(comp of possibleX; track $index){
+										<option [value]="comp">
+											{{comp}}
+										</option>
+									}
+								</select>
+							</div>
+							<div>
+								<label>y </label>
+								<input type="number" [class.invalid]="messageForY!=''" [(ngModel)]="y" [min]="-3" [max]="5" (ngModelChange)="redraw()" />
+							</div>
+							<p class="errorMessage">{{messageForY}}</p>
+							<div>
+								<label>r </label>
+								<select [(ngModel)]="r" (ngModelChange)="redraw()" [class.invalid]="messageForR!=''">
+									@for(comp of possibleR; track $index){
+										<option [value]="comp">
+											{{comp}}
+										</option>
+									}
+								</select>
+							</div>
+							<p class="errorMessage">{{messageForR}}</p>
 						</div>
 						<div>
 							<button (click)="sendPoint(x,y,r)" [disabled]='messageForY != "" || messageForR != ""'>Отправить точку</button>
 							<button (click)="leave()">Ливнуть с акка</button>
 							<button (click)="clearPoints()" [disabled]='points.length == 0'>Удалить точки</button>
+							<button [disabled]="true">Заглушка</button>
 						</div>
-						<p>{{errorMessage}}</p>
+						<p class="errorMessage">{{errorMessage}}</p>
 					</div>
 					<table id="points">
 					<thead>
@@ -131,21 +165,35 @@ import { Observable } from "rxjs";
 				</div>`
 })
 
-export class MainComponent {
+export class MainComponent implements AfterViewInit{
 	@ViewChild('myCanv', { static: false })
 	canvas: ElementRef<HTMLCanvasElement>;	
 	
-	constructor(private backend: BackendService, private router: Router, private aroute: ActivatedRoute){
-        aroute.queryParams.subscribe(
-            (queryParam: Observable<Params>) => {
-                this.backend.token = queryParam["token"];
-            }
-        );
+	constructor(private backend: BackendService, private router: Router, private cookies: CookieService){
+		this.backend.token = cookies.getCookie('token');
 		this.getPoints().then(e=>{this.redraw();});
+		if(cookies.getCookie('x') !== undefined)
+			this._x = Number(cookies.getCookie('x'));
+		if(cookies.getCookie('y') !== undefined)
+			this._y = Number(cookies.getCookie('y'));
+		if(cookies.getCookie('r') !== undefined)
+			this._r = Number(cookies.getCookie('r'));
 	}
+	
+	ngAfterViewInit(){
+		this.canvas.nativeElement.addEventListener("mousemove",ev=>{
+			this.redraw();
+			let rect = this.canvas.nativeElement.getBoundingClientRect();
+			let x = (ev.clientX-rect.left-150)/this.R_ed;
+			let y = (150-ev.clientY+rect.top)/this.R_ed;
+			if(x>=-5 && x <= 3 && y >= -3 && y <= 5)
+				this.drawPoint(Number(x.toFixed(0)),y,this.r, "pink");
+		});
+	}
+	
 	possibleX = [-5,-4,-3,-2,-1,0,1,2,3];
 	possibleR = [-5,-4,-3,-2,-1,0,1,2,3];
-    x: number = 0;
+    _x: number = 0;
 	_y: number = 0;
 	_r: number = 1;
 	points: any = [];
@@ -272,36 +320,32 @@ export class MainComponent {
 		context.lineTo(150, 150);
 		context.fill();
 	}
-	drawPoints(){
+	drawPoint(x:number, y:number, r:number, color: string = "black"){
 		let R_ed = this.R_ed;
 		let R = this.r;
-		let points = this.points;
 		const context = this.canvas.nativeElement.getContext('2d');
+		x = x*R_ed*R/r+150;
+		y = 150 - y*R_ed*R/r;
+		context.beginPath();
+		context.fillStyle=color;
+		context.moveTo(x,y);
+		context.arc(x,y,5,0,Math.PI*2);
+		context.fill();
+	}
+	
+	drawPoints(){
+		let points = this.points;
 		for(let i = 0;i<points.length;i++){
-			let x = points[i].x*R_ed*R/points[i].r+150;//     Задание: масштабировать не только область, но и точки
-			let y = 150 - points[i].y*R_ed*R/points[i].r;//   (=> не пересчитывать попадание/не попадание)
-			context.beginPath();
-			context.moveTo(x,y);
-			context.arc(x,y,5,0,Math.PI*2);
 			if(points[i].inArea)
-				context.fillStyle="green";
+				this.drawPoint(points[i].x, points[i].y, points[i].r, "green");
 			else
-				context.fillStyle="red";
-			context.fill();
+				this.drawPoint(points[i].x, points[i].y, points[i].r, "red");
+			
 		}
     }
 	
 	drawCurPoint(){
-		let R_ed = this.R_ed;
-		let R = this.r;
-		const context = this.canvas.nativeElement.getContext('2d');
-		let x = this.x*R_ed+150;
-		let y = 150 - this.y*R_ed;
-		context.beginPath();
-		context.moveTo(x,y);
-		context.arc(x,y,5,0,Math.PI*2);
-		context.fillStyle="orange";
-		context.fill();
+		this.drawPoint(this.x, this.y, this.r, "orange");
 	}
 	
 	validateY($event){
@@ -316,16 +360,28 @@ export class MainComponent {
 		}
 	}
 	
+	set x(newx: number){
+		if(newx==null)
+			return;
+		else if(newx >= -5 && newx <= 3){
+			this._x = newx;
+			this.cookies.setCookie('x',String(newx));
+		}
+	}
+	
 	set y(newy: number){
 		this.messageForY = "";
 		if(newy==null)
 			this.messageForY = "Введите y";
 		else if(newy < -3){
-			this.messageForY = "Неверное значение Y! Введите значение y >= -3";
+			this.messageForY = "Неверное значение Y! Введите значение y ≥ -3";
 		}
 		else if(newy > 5){
-			this.messageForY = "Неверное значение Y! Введите значение y <= 5";
-		} else this._y = newy;
+			this.messageForY = "Неверное значение Y! Введите значение y ≤ 5";
+		} else {
+			this._y = newy;
+			this.cookies.setCookie('y',String(newy));
+		}
 	}
 	
 	set r(newr: number){
@@ -334,7 +390,10 @@ export class MainComponent {
 			this.messageForR = "Введите r";
 		else if(newr <= 0){
 			this.messageForR = "Неверное значение R! Введите значение r > 0";
-		} else this._r = newr;
+		} else {
+			this._r = newr;
+			this.cookies.setCookie('r',String(newr));
+		}
 	}
 	
 	get y(){
@@ -343,6 +402,10 @@ export class MainComponent {
 	
 	get r(){
 		return this._r;
+	}
+	
+	get x(){
+		return this._x;
 	}
 	
 	validateR($event){
@@ -376,11 +439,12 @@ export class MainComponent {
 	}
 	leave(){
 		this.backend.reset();
+		this.cookies.setCookie('token', '','max-age=0');
 		this.router.navigate(["/"]);
 	}
 	leaveCauseOfSession(){
-		this.backend.reset();
-		this.router.navigate(["/"], {queryParams:{message: "OutOfSession"}});
+		this.cookies.setCookie('message', 'OutOfSession');
+		this.leave();
 	}
 	clearPoints(){
 		this.backend.clearPoints().then(e=>{

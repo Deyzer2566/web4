@@ -2,15 +2,12 @@ package Database;
 
 import Entities.Account;
 import Entities.UserPoint;
+import jakarta.ejb.Singleton;
+import jakarta.persistence.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 
-import javax.ejb.Singleton;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
-import javax.persistence.Persistence;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
 import java.io.Serializable;
 import java.util.List;
 @Singleton
@@ -19,8 +16,7 @@ public class PointBase implements Serializable {
     private EntityManagerFactory emfactory;
 
     public PointBase() {
-        EntityManagerFactory emfactory = Persistence.createEntityManagerFactory("Web4");
-
+        this.emfactory = Persistence.createEntityManagerFactory("Web4");
         this.entityManager = emfactory.createEntityManager();
     }
 
@@ -35,15 +31,9 @@ public class PointBase implements Serializable {
     }
 
     public void clearPoints(Account user) throws UnauthorizedException {
-        if(user == null)
-            throw new UnauthorizedException();
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<UserPoint> query = cb.createQuery(UserPoint.class);
-        Root<UserPoint> c = query.from(UserPoint.class);
-        query.where(cb.equal(c.get("owner"),user));
         EntityTransaction tx = entityManager.getTransaction();
         tx.begin();
-        entityManager.createQuery(query).getResultList().forEach(x->entityManager.remove(x));
+        getPointsTable(user).forEach(entityManager::remove);
         tx.commit();
     }
 

@@ -9,12 +9,5 @@ import { AfterViewInit, ElementRef} from "@angular/core";
 	imports: [RouterOutlet],
     template: `<router-outlet></router-outlet>`,
 })
-export class AppComponent implements AfterViewInit{
-	constructor(private elementRef: ElementRef){
-	
-	}
-	ngAfterViewInit(){
-		this.elementRef.nativeElement.ownerDocument
-           .body.style.backgroundColor = '#FCEEDE';
-	}
+export class AppComponent{
 }

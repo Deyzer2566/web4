@@ -2,7 +2,7 @@ package Token;
 
 import Entities.Account;
 
-import javax.ejb.Singleton;
+import jakarta.ejb.Singleton;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

@@ -1,8 +1,6 @@
 package Entities;
 
-import Entities.Account;
-
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table
