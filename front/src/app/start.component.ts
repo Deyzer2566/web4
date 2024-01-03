@@ -193,7 +193,7 @@ import {CookieService} from "./cookie.service";
 export class StartComponent { 
 	constructor(private backend: BackendService, private router: Router, private cookies: CookieService){
 		if (this.cookies.getCookie('token') !== undefined && this.cookies.getCookie('message') === undefined){
-			this.router.navigate(['/main']);
+			this.goMain();
 		}
 		if (this.cookies.getCookie('message') == 'OutOfSession'){
 			this.errorMessage = "Время сессии истекло, повторите авторизацию";
